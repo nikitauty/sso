@@ -1,3 +1,3 @@
 # SSO
 
-Protobuf contract: https://github.com/GolangLessons/protos
+Protobuf contract: https://github.com/nikitauty/protos
