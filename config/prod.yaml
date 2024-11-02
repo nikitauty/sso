@@ -4,3 +4,4 @@ token_ttl: 10m
 grpc:
   port: 5433
   timeout: 1h
+migrations_path: "./migrations"
