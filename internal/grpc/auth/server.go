@@ -83,7 +83,8 @@ func (s *serverAPI) Register(ctx context.Context, req *ssov1.RegisterRequest) (*
 			return nil, status.Error(codes.InvalidArgument, "password is required")
 		}
 
-		validationErrors := err.(validator.ValidationErrors)
+		var validationErrors validator.ValidationErrors
+		errors.As(err, &validationErrors)
 
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("email is not valid %s", validationErrors))
 	}
