@@ -133,7 +133,7 @@ func (s *Storage) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 	err = row.Scan(&isAdmin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, fmt.Errorf("%s: %w", op, storage.ErrAppNotFound)
+			return false, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 
 		return false, fmt.Errorf("%s: %w", op, err)

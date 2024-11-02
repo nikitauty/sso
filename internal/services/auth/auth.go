@@ -163,7 +163,7 @@ func (a *Auth) IsAdmin(
 		if errors.Is(err, storage.ErrUserNotFound) {
 			log.Warn("user not found", sl.Err(err))
 
-			return false, fmt.Errorf("%s: %w", op, ErrInvalidAppID)
+			return false, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 
 		log.Error("failed to check is user admin", sl.Err(err))

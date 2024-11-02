@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"sso/internal/services/auth"
+	"sso/internal/storage"
 )
 
 type Auth interface {
@@ -57,6 +58,9 @@ func (s *serverAPI) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidEmailOrPassword) {
 			return nil, status.Error(codes.InvalidArgument, "invalid email or password")
+		}
+		if errors.Is(err, auth.ErrInvalidAppID) {
+			return nil, status.Error(codes.InvalidArgument, "invalid app id")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
@@ -112,7 +116,7 @@ func (s *serverAPI) IsAdmin(ctx context.Context, req *ssov1.IsAdminRequest) (*ss
 
 	isAdmin, err := s.auth.IsAdmin(ctx, data.UserID)
 	if err != nil {
-		if errors.Is(err, auth.ErrInvalidAppID) {
+		if errors.Is(err, storage.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
