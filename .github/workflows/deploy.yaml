@@ -54,7 +54,7 @@ jobs:
       - name: List workspace contents
         run: |
           echo "Listing deployment folder contents:"
-          ls -la ${{ github.workspace }}/deployment
+          ls -la ${{ github.workspace }}/deploy
       - name: Copy systemd service file
         run: |
           scp -i deploy_key.pem -o StrictHostKeyChecking=no ${{ github.workspace }}/deployment/grpc-auth.service ${{ env.HOST }}:/tmp/grpc-auth.service
