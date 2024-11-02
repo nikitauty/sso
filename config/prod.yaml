@@ -1,0 +1,6 @@
+env: "prod"
+storage_path: "/root/apps/grpc-auth/sso.db"
+token_ttl: 10m
+grpc:
+  port: 5433
+  timeout: 1h

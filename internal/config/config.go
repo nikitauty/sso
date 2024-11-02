@@ -24,21 +24,10 @@ type GRPCConfig struct {
 func MustLoad() *Config {
 	configPath := fetchConfigPath()
 	if configPath == "" {
-		log.Fatal("CONFIG_PATH is not set")
+		panic("config file path is required")
 	}
 
-	// check if file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("config file does not exist: %s", configPath)
-	}
-
-	var cfg Config
-
-	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
-		log.Fatalf("cannot read config: %s", err)
-	}
-
-	return &cfg
+	return LoadByPath(configPath)
 }
 
 func fetchConfigPath() string {
@@ -51,4 +40,19 @@ func fetchConfigPath() string {
 		os.Getenv("CONFIG_PATH")
 	}
 	return res
+}
+
+func LoadByPath(configPath string) *Config {
+	// check if file exists
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		log.Fatalf("config file does not exist: %s", configPath)
+	}
+
+	var cfg Config
+
+	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
+		log.Fatalf("cannot read config: %s", err)
+	}
+
+	return &cfg
 }

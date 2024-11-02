@@ -36,9 +36,10 @@ type AppProvider interface {
 }
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInvalidAppID       = errors.New("invalid app id")
-	ErrUserExists         = errors.New("user already exists")
+	ErrInvalidCredentials     = errors.New("invalid credentials")
+	ErrInvalidAppID           = errors.New("invalid app id")
+	ErrUserExists             = errors.New("user already exists")
+	ErrInvalidEmailOrPassword = errors.New("invalid email or password")
 )
 
 func New(
@@ -87,7 +88,7 @@ func (a *Auth) Login(
 	if err := bcrypt.CompareHashAndPassword(user.PassHash, []byte(password)); err != nil {
 		a.log.Info("invalid credentials", sl.Err(err))
 
-		return "", fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
+		return "", fmt.Errorf("%s: %w", op, ErrInvalidEmailOrPassword)
 	}
 
 	app, err := a.appProvider.App(ctx, appID)
@@ -159,7 +160,7 @@ func (a *Auth) IsAdmin(
 
 	isAdmin, err := a.userProvider.IsAdmin(ctx, userID)
 	if err != nil {
-		if errors.Is(err, storage.ErrAppNotFound) {
+		if errors.Is(err, storage.ErrUserNotFound) {
 			log.Warn("user not found", sl.Err(err))
 
 			return false, fmt.Errorf("%s: %w", op, ErrInvalidAppID)
