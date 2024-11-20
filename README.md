@@ -24,7 +24,7 @@ A Go-based Single Sign-On (SSO) service providing authentication, authorization,
 - **Docker & Docker Compose:** Containerization and orchestration.
 - **gRPC:** Inter-service communication.
   
-Protobuf contract: https://github.com/nikitauty/protos
+Protobuf contract: https://github.com/nktgv/protos
 
 ---
 
