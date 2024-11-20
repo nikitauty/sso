@@ -1,0 +1,85 @@
+version: '3.9'
+
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: ./services/auth/Dockerfile
+    environment:
+      - DB_HOST=localhost
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=admin
+      - DB_NAME=sso
+      - JWT_SECRET=secret
+    ports:
+      - "8081:8080" # Локальный порт:Порт сервиса
+    depends_on:
+      - database
+      - redis
+
+  permissions:
+    build:
+      context: .
+      dockerfile: ./services/permissions/Dockerfile
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=admin
+      - DB_NAME=sso
+    ports:
+      - "8082:8080"
+    depends_on:
+      - database
+      - redis
+
+  info:
+    build:
+      context: .
+      dockerfile: ./services/info/Dockerfile
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=admin
+      - DB_NAME=sso
+    ports:
+      - "8083:8080"
+    depends_on:
+      - database
+
+  database:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: sso
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+
+  grafana:
+    image: grafana/grafana:10
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+volumes:
+  db_data:

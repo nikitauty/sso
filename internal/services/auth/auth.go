@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,19 +19,21 @@ type Auth struct {
 	userProvider UserProvider
 	appProvider  AppProvider
 	tokenTTL     time.Duration
+	refreshTTL   time.Duration
 }
 
 type UserSaver interface {
-	SaveUser(ctx context.Context, email string, passHash []byte) (uid int64, err error)
+	SaveUser(email string, passHash []byte) (int64, error)
 }
 
 type UserProvider interface {
-	User(ctx context.Context, email string) (models.User, error)
-	IsAdmin(ctx context.Context, userID int64) (bool, error)
+	UserByEmail(email string) (models.User, error)
+	UserByID(id int64) (models.User, error)
+	IsAdmin(userID int64) (bool, error)
 }
 
 type AppProvider interface {
-	App(ctx context.Context, appID int) (models.App, error)
+	App(appID int32) (models.App, error)
 }
 
 var (
@@ -48,6 +49,7 @@ func New(
 	userProvider UserProvider,
 	appProvider AppProvider,
 	tokenTTL time.Duration,
+	refreshTTL time.Duration,
 ) *Auth {
 	return &Auth{
 		log,
@@ -55,15 +57,15 @@ func New(
 		userProvider,
 		appProvider,
 		tokenTTL,
+		refreshTTL,
 	}
 }
 
 func (a *Auth) Login(
-	ctx context.Context,
 	email string,
 	password string,
-	appID int,
-) (string, error) {
+	appID int32,
+) (jwt.TokenPair, error) {
 	const op = "auth.Login"
 
 	log := a.log.With(
@@ -73,43 +75,39 @@ func (a *Auth) Login(
 
 	log.Info("attempting to login user")
 
-	user, err := a.userProvider.User(ctx, email)
+	user, err := a.userProvider.UserByEmail(email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			a.log.Warn("user not found", sl.Err(err))
-
-			return "", fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
+			return jwt.TokenPair{}, fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
 		}
 		a.log.Error("failed to get user", sl.Err(err))
 
-		return "", fmt.Errorf("%s: %w", op, err)
+		return jwt.TokenPair{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword(user.PassHash, []byte(password)); err != nil {
 		a.log.Info("invalid credentials", sl.Err(err))
-
-		return "", fmt.Errorf("%s: %w", op, ErrInvalidEmailOrPassword)
+		return jwt.TokenPair{}, fmt.Errorf("%s: %w", op, ErrInvalidEmailOrPassword)
 	}
 
-	app, err := a.appProvider.App(ctx, appID)
+	app, err := a.appProvider.App(appID)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return jwt.TokenPair{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	log.Info("user logged successfully")
 
-	token, err := jwt.NewToken(user, app, a.tokenTTL)
+	tokens, err := jwt.NewTokenPair(user, app, a.tokenTTL, a.refreshTTL) // Access и Refresh токены
 	if err != nil {
-		log.Error("failed to generate token", sl.Err(err))
-
-		return "", fmt.Errorf("%s: %w", op, err)
+		log.Error("failed to generate tokens", sl.Err(err))
+		return jwt.TokenPair{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return token, nil
+	return tokens, nil
 }
 
 func (a *Auth) RegisterNewUser(
-	ctx context.Context,
 	email string,
 	password string,
 ) (int64, error) {
@@ -129,7 +127,7 @@ func (a *Auth) RegisterNewUser(
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	id, err := a.userSaver.SaveUser(ctx, email, passHash)
+	id, err := a.userSaver.SaveUser(email, passHash)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
 			log.Warn("user already exists", sl.Err(err))
@@ -146,7 +144,6 @@ func (a *Auth) RegisterNewUser(
 }
 
 func (a *Auth) IsAdmin(
-	ctx context.Context,
 	userID int64,
 ) (bool, error) {
 	const op = "Auth.IsAdmin"
@@ -158,7 +155,7 @@ func (a *Auth) IsAdmin(
 
 	log.Info("checking if user is admin")
 
-	isAdmin, err := a.userProvider.IsAdmin(ctx, userID)
+	isAdmin, err := a.userProvider.IsAdmin(userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			log.Warn("user not found", sl.Err(err))

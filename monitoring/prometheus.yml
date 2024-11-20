@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "auth_service"
+    static_configs:
+      - targets: ["auth:8080"]
+
+  - job_name: "permissions_service"
+    static_configs:
+      - targets: ["permissions:8080"]
+
+  - job_name: "info_service"
+    static_configs:
+      - targets: ["info:8080"]

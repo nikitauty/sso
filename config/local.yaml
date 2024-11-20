@@ -1,6 +1,12 @@
 env: "local"
-storage_path: "./storage/sso.db"
-token_ttl: 1h
+token_ttl: 15m
+refresh_ttl: 1h
 grpc:
+  port: 5445
+  timeout: 5m
+postgres:
+  host: "localhost"
   port: 5432
-  timeout: 1h
+  username: "postgres"
+  password: "admin"
+  database: "sso"

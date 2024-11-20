@@ -4,19 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sso/internal/lib/jwt"
+	"sso/internal/services/auth"
+	"sso/internal/storage"
+
 	"github.com/go-playground/validator/v10"
 	ssov1 "github.com/nikitauty/protos/gen/go/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"sso/internal/services/auth"
-	"sso/internal/storage"
 )
 
 type Auth interface {
-	Login(ctx context.Context, email string, password string, appID int) (token string, err error)
-	RegisterNewUser(ctx context.Context, email string, password string) (userID int64, err error)
-	IsAdmin(ctx context.Context, userID int64) (bool, error)
+	Login(email string, password string, appID int32) (pair jwt.TokenPair, err error)
+	RegisterNewUser(email string, password string) (userID int64, err error)
+	IsAdmin(userID int64) (bool, error)
 }
 
 type serverAPI struct {
@@ -54,7 +56,7 @@ func (s *serverAPI) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("email is not valid %s", validationErrors))
 	}
 
-	token, err := s.auth.Login(ctx, data.Email, data.Password, int(data.AppId))
+	pair, err := s.auth.Login(data.Email, data.Password, data.AppId)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidEmailOrPassword) {
 			return nil, status.Error(codes.InvalidArgument, "invalid email or password")
@@ -66,7 +68,7 @@ func (s *serverAPI) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.
 	}
 
 	return &ssov1.LoginResponse{
-		Token: token,
+		Token: pair.AccessToken,
 	}, nil
 }
 
@@ -92,7 +94,7 @@ func (s *serverAPI) Register(ctx context.Context, req *ssov1.RegisterRequest) (*
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("email is not valid %s", validationErrors))
 	}
 
-	userID, err := s.auth.RegisterNewUser(ctx, data.Email, data.Password)
+	userID, err := s.auth.RegisterNewUser(data.Email, data.Password)
 	if err != nil {
 		if errors.Is(err, auth.ErrUserExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
@@ -114,7 +116,7 @@ func (s *serverAPI) IsAdmin(ctx context.Context, req *ssov1.IsAdminRequest) (*ss
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
-	isAdmin, err := s.auth.IsAdmin(ctx, data.UserID)
+	isAdmin, err := s.auth.IsAdmin(data.UserID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return nil, status.Error(codes.NotFound, "user not found")

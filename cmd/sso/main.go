@@ -22,7 +22,7 @@ func main() {
 	log := setupLogger(cfg.Env)
 	log.Info("starting app", slog.Any("config", cfg))
 
-	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
+	application := app.New(log, cfg.GRPC.Port, cfg.PostgresConfig.Username, cfg.PostgresConfig.Password, cfg.PostgresConfig.Host, cfg.PostgresConfig.Port, cfg.PostgresConfig.Database, cfg.TokenTTL, cfg.RefreshTTL)
 
 	go func() {
 		application.GRPCSrv.MustRun()

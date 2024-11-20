@@ -6,20 +6,36 @@ import (
 	"fmt"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
-	var storagePath, migrationsPath, migrationsTable string
+	var user, password, host, port, dbname, migrationsPath, migrationsTable string
 
-	flag.StringVar(&storagePath, "storage-path", "", "path to storage")
+	flag.StringVar(&user, "user", "", "database user")
+	flag.StringVar(&password, "password", "", "database password")
+	flag.StringVar(&host, "host", "", "database host")
+	flag.StringVar(&port, "port", "", "database port")
+	flag.StringVar(&dbname, "dbname", "", "database name")
 	flag.StringVar(&migrationsPath, "migrations-path", "", "path to migrations")
 	flag.StringVar(&migrationsTable, "migrations-table", "", "table to migrate")
 	flag.Parse()
 
-	if storagePath == "" {
-		panic("storage-path is required")
+	if user == "" {
+		panic("user is required")
+	}
+	if password == "" {
+		panic("password is required")
+	}
+	if host == "" {
+		panic("host is required")
+	}
+	if port == "" {
+		panic("port is required")
+	}
+	if dbname == "" {
+		panic("dbname is required")
 	}
 	if migrationsPath == "" {
 		panic("migrations-path is required")
@@ -27,7 +43,7 @@ func main() {
 
 	m, err := migrate.New(
 		"file://"+migrationsPath,
-		fmt.Sprintf("sqlite3://%s?x-migrations-table=%s", storagePath, migrationsTable),
+		fmt.Sprintf("postgres://%s:%s@%s:%s/dbname=%s?x-migrations-table=%s", user, password, host, port, dbname, migrationsTable),
 	)
 	if err != nil {
 		panic(err)
