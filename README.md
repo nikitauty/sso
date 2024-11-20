@@ -53,8 +53,8 @@ Stores and retrieves user-related metadata.
 ### **Steps**
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/sso-service.git
-   cd sso-service
+   git clone https://github.com/nktgv/sso.git
+   cd sso
    ```
 
 2. Start the services using Docker Compose:
